@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./data/status_hub.db"
 
-    status_check_interval_seconds: int = 60
+    status_check_interval_seconds: int = 600
     status_timeout_seconds: int = 5
     status_degraded_threshold_ms: int = 2000
 
