@@ -24,6 +24,13 @@ DEFAULT_SERVICES = [
         "category": "core",
         "is_active": True,
     },
+    {
+        "name": "social-link",
+        "display_name": "Social_Link API",
+        "health_url": "https://social-link-production.up.railway.app/health",
+        "category": "core",
+        "is_active": True,
+    },
 ]
 
 
