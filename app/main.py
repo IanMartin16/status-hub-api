@@ -54,9 +54,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://www.curpify.com"
-        "https://evilink.dev"
-        "https://www.evilink.dev"
+        "https://www.curpify.com",
+        "https://evilink.dev",
+        "https://www.evilink.dev",
     ],
     allow_credentials=True,
     allow_methods=["*"],
