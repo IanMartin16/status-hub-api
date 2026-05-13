@@ -31,6 +31,13 @@ DEFAULT_SERVICES = [
         "category": "core",
         "is_active": True,
     },
+    {
+        "name": "data-link",
+        "display_name": "Data_Link API",
+        "health_url": "https://data-link-api-production.up.railway.app/health",
+        "category": "core",
+        "is_active": True,
+    },
 ]
 
 
