@@ -38,6 +38,13 @@ DEFAULT_SERVICES = [
         "category": "core",
         "is_active": True,
     },
+    {
+        "name": "V-secrets",
+        "display_name": "V-Secrets API",
+        "health_url": "https://v-secrets-api-production.up.railway.app/health",
+        "category": "core",
+        "is_active": True,
+    },
 ]
 
 
