@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    description="Servicio ligero para monitorear el estado de servicios de Evilink y exponer una salida pública para widgets de Service Health.",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
