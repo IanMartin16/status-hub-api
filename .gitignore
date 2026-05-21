@@ -1,2 +1,3 @@
 ### CONFIG ###
 .env-local
+.env.example

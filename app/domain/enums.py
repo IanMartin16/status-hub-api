@@ -5,3 +5,5 @@ class ServiceStatus(str, Enum):
     DEGRADED = "degraded"
     MAINTENANCE = "maintenance"
     DOWN = "down"
+    PLATFORM_ISSUE = "platform_issue"
+    UNKNOWN = "unknown"

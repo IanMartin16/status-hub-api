@@ -17,7 +17,10 @@ class ServiceStatusItem(BaseModel):
     display_name: str
     status: ServiceStatus
     latency_ms: int | None = None
+    http_status: int | None = None
     last_checked: datetime
+    last_status_change_at: datetime | None = None
+    consecutive_failures: int = 0
     message: str | None = None
 
 
@@ -33,6 +36,8 @@ class StatusSummaryResponse(BaseModel):
     degraded: int
     maintenance: int
     down: int
+    platform_issue: int = 0
+    unknown: int = 0
     last_updated: datetime
 
 

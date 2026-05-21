@@ -61,6 +61,8 @@ def get_all_status(db: Session = Depends(get_db)) -> StatusResponse:
                 status=status_value,
                 latency_ms=latency_ms,
                 last_checked=last_checked,
+                last_status_change_at=status_row.last_status_change_at,
+                consecutive_failures=status_row.consecutive_failures,
                 message=message,
             )
         )
