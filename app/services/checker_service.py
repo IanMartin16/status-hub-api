@@ -27,3 +27,12 @@ class CheckerService:
                 message=evaluated.message,
                 raw_error=probe.error,
             )
+
+            self.repo.insert_check_event(
+                service_id=service.id,
+                status=evaluated.status.value,
+                latency_ms=probe.latency_ms,
+                http_status=probe.http_status,
+                message=evaluated.message,
+                raw_error=probe.error,
+            )

@@ -11,6 +11,12 @@ class HealthResponse(BaseModel):
     version: str
     timestamp: datetime
 
+class ServiceCheckEventItem(BaseModel):
+    status: ServiceStatus 
+    latency_ms: int | None = None 
+    http_status: int | None = None
+    checked_at: datetime 
+    message: str | None = None     
 
 class ServiceStatusItem(BaseModel):
     name: str
@@ -22,6 +28,7 @@ class ServiceStatusItem(BaseModel):
     last_status_change_at: datetime | None = None
     consecutive_failures: int = 0
     message: str | None = None
+    recent_events: list[ServiceCheckEventItem] = []
 
 
 class StatusResponse(BaseModel):

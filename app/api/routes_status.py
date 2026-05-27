@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.domain.enums import ServiceStatus
 from app.domain.schemas import (
+    ServiceCheckEventItem,
     ServiceStatusItem,
     StatusResponse,
     StatusSummaryResponse,
@@ -15,6 +16,46 @@ from app.repositories.status_repository import StatusRepository
 router = APIRouter(prefix="/v1/status", tags=["status"])
 
 
+def resolve_overall_status(statuses: list[ServiceStatus]) -> ServiceStatus:
+    """
+    Priority:
+    down > platform_issue > degraded > maintenance > unknown > operational
+    """
+    if any(s == ServiceStatus.DOWN for s in statuses):
+        return ServiceStatus.DOWN
+
+    if any(s == ServiceStatus.PLATFORM_ISSUE for s in statuses):
+        return ServiceStatus.PLATFORM_ISSUE
+
+    if any(s == ServiceStatus.DEGRADED for s in statuses):
+        return ServiceStatus.DEGRADED
+
+    if any(s == ServiceStatus.MAINTENANCE for s in statuses):
+        return ServiceStatus.MAINTENANCE
+
+    if any(s == ServiceStatus.UNKNOWN for s in statuses):
+        return ServiceStatus.UNKNOWN
+
+    return ServiceStatus.OPERATIONAL
+
+
+def build_recent_events(events) -> list[ServiceCheckEventItem]:
+    """
+    Repo returns newest -> oldest.
+    Frontend bars need oldest -> newest.
+    """
+    return [
+        ServiceCheckEventItem(
+            status=ServiceStatus(event.status),
+            latency_ms=event.latency_ms,
+            http_status=event.http_status,
+            checked_at=event.checked_at,
+            message=event.message,
+        )
+        for event in reversed(events)
+    ]
+
+
 @router.get("", response_model=StatusResponse)
 def get_all_status(db: Session = Depends(get_db)) -> StatusResponse:
     repo = StatusRepository(db)
@@ -24,10 +65,15 @@ def get_all_status(db: Session = Depends(get_db)) -> StatusResponse:
     latest_status_map = repo.get_latest_status_map()
     overrides_map = maintenance_repo.get_enabled_overrides_map()
 
+    service_ids = [service.id for service in services]
+    events_map = repo.get_recent_events_map(service_ids, limit_per_service=30)
+
     items: list[ServiceStatusItem] = []
+
     for service in services:
         override = overrides_map.get(service.id)
         status_row = latest_status_map.get(service.id)
+        recent_events = build_recent_events(events_map.get(service.id, []))
 
         if override:
             items.append(
@@ -36,44 +82,49 @@ def get_all_status(db: Session = Depends(get_db)) -> StatusResponse:
                     display_name=service.display_name,
                     status=ServiceStatus.MAINTENANCE,
                     latency_ms=None,
+                    http_status=None,
                     last_checked=override.updated_at,
+                    last_status_change_at=override.updated_at,
+                    consecutive_failures=0,
                     message=override.message or "Service under maintenance.",
+                    recent_events=recent_events,
                 )
             )
             continue
 
-        status_value = ServiceStatus.OPERATIONAL
-        latency_ms = None
-        message = "Pending first real check."
-
         if status_row:
-            status_value = ServiceStatus(status_row.status)
-            latency_ms = status_row.latency_ms
-            message = status_row.message
-            last_checked = status_row.last_checked_at
-        else:
-            last_checked = utc_now()
+            items.append(
+                ServiceStatusItem(
+                    name=service.name,
+                    display_name=service.display_name,
+                    status=ServiceStatus(status_row.status),
+                    latency_ms=status_row.latency_ms,
+                    http_status=status_row.http_status,
+                    last_checked=status_row.last_checked_at,
+                    last_status_change_at=status_row.last_status_change_at,
+                    consecutive_failures=status_row.consecutive_failures,
+                    message=status_row.message,
+                    recent_events=recent_events,
+                )
+            )
+            continue
 
         items.append(
             ServiceStatusItem(
                 name=service.name,
                 display_name=service.display_name,
-                status=status_value,
-                latency_ms=latency_ms,
-                last_checked=last_checked,
-                last_status_change_at=status_row.last_status_change_at,
-                consecutive_failures=status_row.consecutive_failures,
-                message=message,
+                status=ServiceStatus.UNKNOWN,
+                latency_ms=None,
+                http_status=None,
+                last_checked=utc_now(),
+                last_status_change_at=None,
+                consecutive_failures=0,
+                message="Pending first real check.",
+                recent_events=recent_events,
             )
         )
 
-    overall_status = ServiceStatus.OPERATIONAL
-    if any(s.status == ServiceStatus.DOWN for s in items):
-        overall_status = ServiceStatus.DOWN
-    elif any(s.status == ServiceStatus.DEGRADED for s in items):
-        overall_status = ServiceStatus.DEGRADED
-    elif any(s.status == ServiceStatus.MAINTENANCE for s in items):
-        overall_status = ServiceStatus.MAINTENANCE
+    overall_status = resolve_overall_status([item.status for item in items])
 
     return StatusResponse(
         overall_status=overall_status,
@@ -92,30 +143,29 @@ def get_status_summary(db: Session = Depends(get_db)) -> StatusSummaryResponse:
     overrides_map = maintenance_repo.get_enabled_overrides_map()
 
     resolved_statuses: list[ServiceStatus] = []
+
     for service in services:
         override = overrides_map.get(service.id)
+
         if override:
             resolved_statuses.append(ServiceStatus.MAINTENANCE)
             continue
 
         row = latest_status_map.get(service.id)
+
         if row:
             resolved_statuses.append(ServiceStatus(row.status))
         else:
-            resolved_statuses.append(ServiceStatus.OPERATIONAL)
+            resolved_statuses.append(ServiceStatus.UNKNOWN)
 
     operational = sum(1 for s in resolved_statuses if s == ServiceStatus.OPERATIONAL)
     degraded = sum(1 for s in resolved_statuses if s == ServiceStatus.DEGRADED)
     maintenance = sum(1 for s in resolved_statuses if s == ServiceStatus.MAINTENANCE)
     down = sum(1 for s in resolved_statuses if s == ServiceStatus.DOWN)
+    platform_issue = sum(1 for s in resolved_statuses if s == ServiceStatus.PLATFORM_ISSUE)
+    unknown = sum(1 for s in resolved_statuses if s == ServiceStatus.UNKNOWN)
 
-    overall_status = ServiceStatus.OPERATIONAL
-    if down > 0:
-        overall_status = ServiceStatus.DOWN
-    elif degraded > 0:
-        overall_status = ServiceStatus.DEGRADED
-    elif maintenance > 0:
-        overall_status = ServiceStatus.MAINTENANCE
+    overall_status = resolve_overall_status(resolved_statuses)
 
     return StatusSummaryResponse(
         overall_status=overall_status,
@@ -123,12 +173,17 @@ def get_status_summary(db: Session = Depends(get_db)) -> StatusSummaryResponse:
         degraded=degraded,
         maintenance=maintenance,
         down=down,
+        platform_issue=platform_issue,
+        unknown=unknown,
         last_updated=utc_now(),
     )
 
 
 @router.get("/{service_name}", response_model=ServiceStatusItem)
-def get_service_status(service_name: str, db: Session = Depends(get_db)) -> ServiceStatusItem:
+def get_service_status(
+    service_name: str,
+    db: Session = Depends(get_db),
+) -> ServiceStatusItem:
     repo = StatusRepository(db)
     maintenance_repo = MaintenanceRepository(db)
 
@@ -140,35 +195,52 @@ def get_service_status(service_name: str, db: Session = Depends(get_db)) -> Serv
         if service.name != service_name:
             continue
 
+        events = repo.get_recent_events_by_service(service.id, limit=30)
+        recent_events = build_recent_events(events)
+
         override = overrides_map.get(service.id)
+
         if override:
             return ServiceStatusItem(
                 name=service.name,
                 display_name=service.display_name,
                 status=ServiceStatus.MAINTENANCE,
                 latency_ms=None,
+                http_status=None,
                 last_checked=override.updated_at,
+                last_status_change_at=override.updated_at,
+                consecutive_failures=0,
                 message=override.message or "Service under maintenance.",
+                recent_events=recent_events,
             )
 
         row = latest_status_map.get(service.id)
+
         if row:
             return ServiceStatusItem(
                 name=service.name,
                 display_name=service.display_name,
                 status=ServiceStatus(row.status),
                 latency_ms=row.latency_ms,
+                http_status=row.http_status,
                 last_checked=row.last_checked_at,
+                last_status_change_at=row.last_status_change_at,
+                consecutive_failures=row.consecutive_failures,
                 message=row.message,
+                recent_events=recent_events,
             )
 
         return ServiceStatusItem(
             name=service.name,
             display_name=service.display_name,
-            status=ServiceStatus.OPERATIONAL,
+            status=ServiceStatus.UNKNOWN,
             latency_ms=None,
+            http_status=None,
             last_checked=utc_now(),
+            last_status_change_at=None,
+            consecutive_failures=0,
             message="Pending first real check.",
+            recent_events=recent_events,
         )
 
     raise HTTPException(status_code=404, detail="Service not found")

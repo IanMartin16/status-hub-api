@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.service import Service
 from app.models.service_status import ServiceStatusRecord
+from app.models.service_check_event import ServiceCheckEvent
 
 
 def utc_now():
@@ -98,3 +99,55 @@ class StatusRepository:
         self.db.commit()
         self.db.refresh(created)
         return created
+
+    def insert_check_event(
+        self,
+        service_id: int,
+        status: str,
+        latency_ms: int | None,
+        http_status: int | None,
+        message: str | None,
+        raw_error: str | None,
+    ) -> ServiceCheckEvent:
+        event = ServiceCheckEvent(
+            service_id=service_id,
+            status=status,
+            latency_ms=latency_ms,
+            http_status=http_status,
+            message=message,
+            raw_error=raw_error,
+            checked_at=utc_now(),
+        )
+
+        self.db.add(event)
+        self.db.commit()
+        self.db.refresh(event)
+        return event
+
+    def get_recent_events_by_service(
+        self,
+        service_id: int,
+        limit: int = 30,
+    ) -> list[ServiceCheckEvent]:
+        return (
+            self.db.query(ServiceCheckEvent)
+            .filter(ServiceCheckEvent.service_id == service_id)
+            .order_by(ServiceCheckEvent.checked_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_recent_events_map(
+        self,
+        service_ids: list[int],
+        limit_per_service: int = 30,
+    ) -> dict[int, list[ServiceCheckEvent]]:
+        result: dict[int, list[ServiceCheckEvent]] = {}
+
+        for service_id in service_ids:
+            result[service_id] = self.get_recent_events_by_service(
+                service_id=service_id,
+                limit=limit_per_service,
+            )
+
+        return result
