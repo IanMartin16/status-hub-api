@@ -45,6 +45,13 @@ DEFAULT_SERVICES = [
         "category": "core",
         "is_active": True,
     },
+    {
+        "name": "mcp-one",
+        "display_name": "MCPOne API",
+        "health_url": "https://mcp-one-production.up.railway.app/health",
+        "category": "core",
+        "is_active": True,
+    },
 ]
 
 
