@@ -52,6 +52,13 @@ DEFAULT_SERVICES = [
         "category": "core",
         "is_active": True,
     },
+    {
+        "name": "evi-gateway",
+        "display_name": "EVI Gateway API",
+        "health_url": "https://evi-gateway-production.up.railway.app/api/health",
+        "category": "core",
+        "is_active": True,
+    },
 ]
 
 
