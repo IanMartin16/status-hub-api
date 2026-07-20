@@ -59,6 +59,13 @@ DEFAULT_SERVICES = [
         "category": "core",
         "is_active": True,
     },
+    {
+        "name": "nexus-slim",
+        "display_name": "Nexus Slim API",
+        "health_url": "https://nexus-slim-production.up.railway.app/api/health",
+        "category": "core",
+        "is_active": True,
+    },
 ]
 
 
