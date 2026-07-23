@@ -6,7 +6,7 @@ DEFAULT_SERVICES = [
     {
         "name": "cryptolink-api",
         "display_name": "CryptoLink API",
-        "health_url": "https://cryptolink-production.up.railway.app/actuator/health",
+        "health_url": "https://cryptolink-production.up.railway.app/api/health",
         "category": "core",
         "is_active": True,
     },
