@@ -34,7 +34,7 @@ DEFAULT_SERVICES = [
     {
         "name": "data-link",
         "display_name": "Data_Link API",
-        "health_url": "https://data-link-api-production.up.railway.app/health",
+        "health_url": "https://data-link-api-production.up.railway.app/api/health",
         "category": "core",
         "is_active": True,
     },
