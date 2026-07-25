@@ -18,13 +18,6 @@ DEFAULT_SERVICES = [
         "is_active": True,
     },
     {
-        "name": "nexus-api",
-        "display_name": "Nexus API",
-        "health_url": "https://nexus-api-production-7492.up.railway.app/health",
-        "category": "core",
-        "is_active": True,
-    },
-    {
         "name": "social-link",
         "display_name": "Social_Link API",
         "health_url": "https://social-link-production.up.railway.app/api/health",
