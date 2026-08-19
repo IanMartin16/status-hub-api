@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+
 from app.models.service import Service
 
 
@@ -41,7 +42,7 @@ DEFAULT_SERVICES = [
     {
         "name": "mcp-one",
         "display_name": "MCPOne API",
-        "health_url": "https://mcp-one-production.up.railway.app/health",
+        "health_url": "https://mcp-one-production.up.railway.app/api/health",
         "category": "core",
         "is_active": True,
     },
@@ -64,7 +65,19 @@ DEFAULT_SERVICES = [
 
 def seed_services(db: Session) -> None:
     for item in DEFAULT_SERVICES:
-        exists = db.query(Service).filter(Service.name == item["name"]).first()
-        if not exists:
+        service = (
+            db.query(Service)
+            .filter(Service.name == item["name"])
+            .first()
+        )
+
+        if service is None:
             db.add(Service(**item))
+            continue
+
+        service.display_name = item["display_name"]
+        service.health_url = item["health_url"]
+        service.category = item["category"]
+        service.is_active = item["is_active"]
+
     db.commit()

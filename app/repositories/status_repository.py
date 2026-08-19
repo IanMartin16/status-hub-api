@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.models.service import Service
 from app.models.service_status import ServiceStatusRecord
 from app.models.service_check_event import ServiceCheckEvent
-
+from app.models.service_event import ServiceEvent
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -53,6 +53,10 @@ class StatusRepository:
         http_status: int | None,
         message: str | None,
         raw_error: str | None,
+        readiness: str | None = None,
+        uptime_seconds: int | None = None,
+        contract_version: str | None = None,
+        checks: list | None = None,
     ) -> ServiceStatusRecord:
         now = utc_now()
 
@@ -62,6 +66,11 @@ class StatusRepository:
             status_changed = existing.status != status
 
             existing.status = status
+            existing.readiness = readiness
+            existing.uptime_seconds = uptime_seconds
+            existing.contract_version = contract_version
+            existing.checks = checks
+
             existing.latency_ms = latency_ms
             existing.http_status = http_status
             existing.message = message
@@ -79,25 +88,31 @@ class StatusRepository:
                 existing.consecutive_failures = 0
 
             self.db.add(existing)
-            self.db.commit()
-            self.db.refresh(existing)
             return existing
 
         created = ServiceStatusRecord(
             service_id=service_id,
             status=status,
+
+            readiness=readiness,
+            uptime_seconds=uptime_seconds,
+            contract_version=contract_version,
+            checks=checks,
+
             latency_ms=latency_ms,
             http_status=http_status,
             message=message,
             raw_error=raw_error,
-            consecutive_failures=1 if status in FAILURE_STATUSES else 0,
+
+            consecutive_failures=(
+                1 if status in FAILURE_STATUSES else 0
+            ),
+
             last_status_change_at=now,
             last_checked_at=now,
         )
 
         self.db.add(created)
-        self.db.commit()
-        self.db.refresh(created)
         return created
 
     def insert_check_event(
@@ -108,10 +123,20 @@ class StatusRepository:
         http_status: int | None,
         message: str | None,
         raw_error: str | None,
+        readiness: str | None = None,
+        uptime_seconds: int | None = None,
+        contract_version: str | None = None,
+        checks: list | None = None,
     ) -> ServiceCheckEvent:
         event = ServiceCheckEvent(
             service_id=service_id,
             status=status,
+
+            readiness=readiness,
+            uptime_seconds=uptime_seconds,
+            contract_version=contract_version,
+            checks=checks,
+
             latency_ms=latency_ms,
             http_status=http_status,
             message=message,
@@ -120,8 +145,6 @@ class StatusRepository:
         )
 
         self.db.add(event)
-        self.db.commit()
-        self.db.refresh(event)
         return event
 
     def get_recent_events_by_service(
@@ -151,3 +174,30 @@ class StatusRepository:
             )
 
         return result
+
+    def insert_service_event(
+        self,
+        service_id: int,
+        event_type: str,
+        severity: str,
+        previous_status: str | None,
+        current_status: str | None,
+        message: str | None,
+        event_metadata: dict | None,
+        source_check_id: int | None,
+    ) -> ServiceEvent:
+
+        event = ServiceEvent(
+            service_id=service_id,
+            event_type=event_type,
+            severity=severity,
+            previous_status=previous_status,
+            current_status=current_status,
+            message=message,
+            event_metadata=event_metadata,
+            source_check_id=source_check_id,
+        )
+
+        self.db.add(event)
+
+        return event    

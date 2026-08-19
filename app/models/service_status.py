@@ -1,6 +1,15 @@
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.db.base import Base
 
 
@@ -11,7 +20,11 @@ def utc_now():
 class ServiceStatusRecord(Base):
     __tablename__ = "service_status"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
 
     service_id: Mapped[int] = mapped_column(
         ForeignKey("services.id"),
@@ -19,12 +32,50 @@ class ServiceStatusRecord(Base):
         nullable=False,
     )
 
-    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+    )
 
-    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    message: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    raw_error: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    readiness: Mapped[str | None] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+
+    uptime_seconds: Mapped[int | None] = mapped_column(
+        BigInteger,
+        nullable=True,
+    )
+
+    contract_version: Mapped[str | None] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+
+    checks: Mapped[list | None] = mapped_column(
+        JSON,
+        nullable=True,
+    )
+
+    latency_ms: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    http_status: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    message: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+
+    raw_error: Mapped[str | None] = mapped_column(
+        String(1000),
+        nullable=True,
+    )
 
     consecutive_failures: Mapped[int] = mapped_column(
         Integer,
