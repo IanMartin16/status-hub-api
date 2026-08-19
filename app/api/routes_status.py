@@ -83,6 +83,12 @@ def get_all_status(db: Session = Depends(get_db)) -> StatusResponse:
                     status=ServiceStatus.MAINTENANCE,
                     latency_ms=None,
                     http_status=None,
+
+                    readiness=None,
+                    uptime_seconds=None,
+                    contract_version=None,
+                    checks=None,
+
                     last_checked=override.updated_at,
                     last_status_change_at=override.updated_at,
                     consecutive_failures=0,
@@ -100,6 +106,12 @@ def get_all_status(db: Session = Depends(get_db)) -> StatusResponse:
                     status=ServiceStatus(status_row.status),
                     latency_ms=status_row.latency_ms,
                     http_status=status_row.http_status,
+
+                    readiness=status_row.readiness,
+                    uptime_seconds=status_row.uptime_seconds,
+                    contract_version=status_row.contract_version,
+                    checks=status_row.checks,
+
                     last_checked=status_row.last_checked_at,
                     last_status_change_at=status_row.last_status_change_at,
                     consecutive_failures=status_row.consecutive_failures,
@@ -116,6 +128,12 @@ def get_all_status(db: Session = Depends(get_db)) -> StatusResponse:
                 status=ServiceStatus.UNKNOWN,
                 latency_ms=None,
                 http_status=None,
+
+                readiness=None,
+                uptime_seconds=None,
+                contract_version=None,
+                checks=None,
+
                 last_checked=utc_now(),
                 last_status_change_at=None,
                 consecutive_failures=0,
@@ -223,6 +241,10 @@ def get_service_status(
                 status=ServiceStatus(row.status),
                 latency_ms=row.latency_ms,
                 http_status=row.http_status,
+                readiness=row.readiness,
+                uptime_seconds=row.uptime_seconds,
+                contract_version=row.contract_version,
+                checks=row.checks,
                 last_checked=row.last_checked_at,
                 last_status_change_at=row.last_status_change_at,
                 consecutive_failures=row.consecutive_failures,

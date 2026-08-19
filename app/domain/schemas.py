@@ -22,12 +22,20 @@ class ServiceStatusItem(BaseModel):
     name: str
     display_name: str
     status: ServiceStatus
+
     latency_ms: int | None = None
     http_status: int | None = None
+
+    readiness: str | None = None
+    uptime_seconds: int | None = None
+    contract_version: str | None = None
+    checks: list[dict[str, Any]] | None = None
+
     last_checked: datetime
     last_status_change_at: datetime | None = None
     consecutive_failures: int = 0
     message: str | None = None
+
     recent_events: list[ServiceCheckEventItem] = []
 
 
