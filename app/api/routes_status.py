@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.domain.enums import ServiceStatus
 from app.domain.schemas import (
     ServiceCheckEventItem,
+    ServiceEventItem,
+    ServiceEventsResponse,
     ServiceStatusItem,
     StatusResponse,
     StatusSummaryResponse,
@@ -266,3 +268,51 @@ def get_service_status(
         )
 
     raise HTTPException(status_code=404, detail="Service not found")
+
+@router.get(
+    "/{service_name}/events",
+    response_model=ServiceEventsResponse,
+)
+def get_service_events(
+    service_name: str,
+    limit: int = Query(default=30, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> ServiceEventsResponse:
+
+    repo = StatusRepository(db)
+
+    services = repo.list_active_services()
+
+    for service in services:
+        if service.name != service_name:
+            continue
+
+        rows = repo.get_recent_service_events(
+            service_id=service.id,
+            limit=limit,
+        )
+
+        events = [
+            ServiceEventItem(
+                event_type=row.event_type,
+                severity=row.severity,
+                previous_status=row.previous_status,
+                current_status=row.current_status,
+                message=row.message,
+                metadata=row.event_metadata,
+                source_check_id=row.source_check_id,
+                occurred_at=row.occurred_at,
+            )
+            for row in rows
+        ]
+
+        return ServiceEventsResponse(
+            name=service.name,
+            display_name=service.display_name,
+            events=events,
+        )
+
+    raise HTTPException(
+        status_code=404,
+        detail="Service not found",
+    )    

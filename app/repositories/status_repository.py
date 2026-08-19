@@ -201,3 +201,17 @@ class StatusRepository:
         self.db.add(event)
 
         return event    
+
+    def get_recent_service_events(
+        self,
+        service_id: int,
+        limit: int = 30,
+    ) -> list[ServiceEvent]:
+
+        return (
+            self.db.query(ServiceEvent)
+            .filter(ServiceEvent.service_id == service_id)
+            .order_by(ServiceEvent.occurred_at.desc())
+            .limit(limit)
+            .all()
+        )    

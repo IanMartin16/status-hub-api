@@ -87,33 +87,29 @@ class EvaluatorService:
             message="Service responded successfully.",
         )
 
-    def _evaluate_failed_probe(self, probe: ProbeResult) -> EvaluatedStatus:
-        if probe.http_status is not None:
-            if probe.http_status in self.PLATFORM_HTTP_STATUSES:
-                return EvaluatedStatus(
-                    status=ServiceStatus.PLATFORM_ISSUE,
-                    message=(
-                        f"Possible platform/upstream issue. "
-                        f"Service returned HTTP {probe.http_status}."
-                    ),
-                )
+    def _evaluate_failed_probe(
+        self,
+        probe: ProbeResult,
+    ) -> EvaluatedStatus:
 
-            if 500 <= probe.http_status <= 599:
-                return EvaluatedStatus(
-                    status=ServiceStatus.DEGRADED,
-                    message=f"Service returned server error HTTP {probe.http_status}.",
-                )
-
-            if 400 <= probe.http_status <= 499:
-                return EvaluatedStatus(
-                    status=ServiceStatus.DEGRADED,
-                    message=f"Service returned client error HTTP {probe.http_status}.",
-                )
-
+        if probe.http_status is None:
             return EvaluatedStatus(
                 status=ServiceStatus.UNKNOWN,
-                message=f"Service returned unexpected HTTP {probe.http_status}.",
+                message=probe.error or "Service could not be observed.",
             )
+
+        if probe.http_status in self.PLATFORM_HTTP_STATUSES:
+            return EvaluatedStatus(
+                status=ServiceStatus.PLATFORM_ISSUE,
+                message=(
+                    f"Service returned HTTP {probe.http_status}."
+                ),
+            )
+
+        return EvaluatedStatus(
+            status=ServiceStatus.DOWN,
+            message=f"Service returned HTTP {probe.http_status}.",
+        )
 
         error = (probe.error or "").lower()
 
@@ -165,15 +161,11 @@ class EvaluatorService:
         if normalized in self.HEALTHY_STATUSES:
             # Si health.v1 dice operational pero el HTTP no fue exitoso,
             # existe una inconsistencia que conviene representar como degraded.
-            if not probe.ok:
-                return EvaluatedStatus(
-                    status=ServiceStatus.DEGRADED,
-                    message=(
-                        f"Health status reported as {normalized}, "
-                        f"but endpoint returned HTTP {probe.http_status}."
-                    ),
-                    **telemetry,
-                )
+            return EvaluatedStatus(
+                status=ServiceStatus.OPERATIONAL,
+                message=f"Health status reported as {normalized}.",
+                **telemetry,
+            )
 
             if self._is_slow(probe):
                 return EvaluatedStatus(

@@ -76,6 +76,22 @@ class MaintenanceResponse(BaseModel):
     message: str | None = None
     updated_at: datetime
 
+class ServiceEventItem(BaseModel):
+    event_type: str
+    severity: str
+    previous_status: str | None = None
+    current_status: str | None = None
+    message: str | None = None
+    metadata: dict[str, Any] | None = None
+    source_check_id: int | None = None
+    occurred_at: datetime
+
+
+class ServiceEventsResponse(BaseModel):
+    name: str
+    display_name: str
+    events: list[ServiceEventItem]    
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
