@@ -75,9 +75,18 @@ class HistoryMaintenanceService:
                 if e.latency_ms is not None
             ]
 
+            available_checks = operational + degraded
+
+            known_checks = (
+                operational
+                + degraded
+                + down
+                + platform_issue
+            )
+
             availability_pct = (
-                (operational / total_checks) * 100
-                if total_checks
+                (available_checks / known_checks) * 100
+                if known_checks
                 else 0.0
             )
 
@@ -134,7 +143,7 @@ class HistoryMaintenanceService:
             datetime.min.time(),
             tzinfo=timezone.utc,
         )
-        
+
         old_events = (
             self.db.query(ServiceCheckEvent)
             .filter(ServiceCheckEvent.checked_at < cutoff)

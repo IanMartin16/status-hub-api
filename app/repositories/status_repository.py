@@ -233,10 +233,16 @@ class StatusRepository:
         limit: int = 30,
     ) -> list[ServiceHealthDaily]:
 
+        today_utc = datetime.now(timezone.utc).date()
+
         return (
             self.db.query(ServiceHealthDaily)
-            .filter(ServiceHealthDaily.service_id == service_id)
+            .filter(
+                ServiceHealthDaily.service_id == service_id,
+                ServiceHealthDaily.day < today_utc,
+            )
             .order_by(ServiceHealthDaily.day.desc())
             .limit(limit)
             .all()
-        )    
+        )
+           
