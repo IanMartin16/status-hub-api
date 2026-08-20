@@ -81,7 +81,7 @@ class EventDetectorService:
 
             elif (
                 current_status == "operational"
-                and previous_status in self.FAILURE_STATUSES
+                and previous_status in self.SERVICE_RECOVERY_STATUSES
             ):
                 events.append(
                     DetectedEvent(
