@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Any
 from pydantic import BaseModel
 
@@ -95,3 +95,21 @@ class ServiceEventsResponse(BaseModel):
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+class ServiceHealthDailyItem(BaseModel):
+    day: date
+    total_checks: int
+    operational_checks: int
+    degraded_checks: int
+    down_checks: int
+    platform_issue_checks: int
+    unknown_checks: int
+    availability_pct: float
+    avg_latency_ms: float | None = None
+    max_latency_ms: int | None = None
+
+
+class ServiceHistoryResponse(BaseModel):
+    name: str
+    display_name: str
+    history: list[ServiceHealthDailyItem]

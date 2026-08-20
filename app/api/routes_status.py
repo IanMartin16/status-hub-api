@@ -10,6 +10,8 @@ from app.domain.schemas import (
     ServiceStatusItem,
     StatusResponse,
     StatusSummaryResponse,
+    ServiceHealthDailyItem,
+    ServiceHistoryResponse,
     utc_now,
 )
 from app.repositories.maintenance_repository import MaintenanceRepository
@@ -315,4 +317,51 @@ def get_service_events(
     raise HTTPException(
         status_code=404,
         detail="Service not found",
+    )    
+
+@router.get(
+    "/{service_name}/history",
+    response_model=ServiceHistoryResponse,
+)
+def get_service_history(
+    service_name: str,
+    limit: int = Query(default=30, ge=1, le=90),
+    db: Session = Depends(get_db),
+) -> ServiceHistoryResponse:
+
+    repo = StatusRepository(db)
+
+    service = repo.get_service_by_name(service_name)
+
+    if not service:
+        raise HTTPException(
+            status_code=404,
+            detail="Service not found",
+        )
+
+    rows = repo.get_service_health_history(
+        service_id=service.id,
+        limit=limit,
+    )
+
+    history = [
+        ServiceHealthDailyItem(
+            day=row.day,
+            total_checks=row.total_checks,
+            operational_checks=row.operational_checks,
+            degraded_checks=row.degraded_checks,
+            down_checks=row.down_checks,
+            platform_issue_checks=row.platform_issue_checks,
+            unknown_checks=row.unknown_checks,
+            availability_pct=row.availability_pct,
+            avg_latency_ms=row.avg_latency_ms,
+            max_latency_ms=row.max_latency_ms,
+        )
+        for row in rows
+    ]
+
+    return ServiceHistoryResponse(
+        name=service.name,
+        display_name=service.display_name,
+        history=history,
     )    

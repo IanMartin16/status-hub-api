@@ -6,6 +6,7 @@ from app.models.service import Service
 from app.models.service_status import ServiceStatusRecord
 from app.models.service_check_event import ServiceCheckEvent
 from app.models.service_event import ServiceEvent
+from app.models.service_health_daily import ServiceHealthDaily
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -225,3 +226,17 @@ class StatusRepository:
             .filter(Service.name == service_name)
             .first()
         )      
+
+    def get_service_health_history(
+        self,
+        service_id: int,
+        limit: int = 30,
+    ) -> list[ServiceHealthDaily]:
+
+        return (
+            self.db.query(ServiceHealthDaily)
+            .filter(ServiceHealthDaily.service_id == service_id)
+            .order_by(ServiceHealthDaily.day.desc())
+            .limit(limit)
+            .all()
+        )    
