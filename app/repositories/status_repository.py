@@ -214,4 +214,14 @@ class StatusRepository:
             .order_by(ServiceEvent.occurred_at.desc())
             .limit(limit)
             .all()
-        )    
+        )  
+
+    def get_service_by_name(
+        self,
+        service_name: str,
+    ):
+        return (
+            self.db.query(Service)
+            .filter(Service.name == service_name)
+            .first()
+        )      
