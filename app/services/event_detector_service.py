@@ -20,6 +20,11 @@ class EventDetectorService:
         "unknown",
     }
 
+    SERVICE_RECOVERY_STATUSES = {
+        "degraded",
+        "down",
+    }
+
     def detect(
         self,
         *,

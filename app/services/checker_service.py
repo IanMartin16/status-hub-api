@@ -5,6 +5,9 @@ from app.repositories.status_repository import StatusRepository
 from app.services.evaluator_service import EvaluatorService
 from app.services.event_detector_service import EventDetectorService
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CheckerService:
     def __init__(self, db: Session):
@@ -110,4 +113,10 @@ class CheckerService:
 
             except Exception:
                 self.db.rollback()
-                raise
+
+                logger.exception(
+                    "Internal status check failure for service=%s",
+                    service.name,
+                )
+
+                continue
